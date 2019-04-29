@@ -1,6 +1,7 @@
 use std::io::{self, stdout, Write};
 
 use sonr::reactor::{Reaction, Reactor, EventedReactor};
+use sonr::errors::Result;
 use sonr::{Ready, Evented, Token, Poll, PollOpt};
 use bytes::{Bytes, BytesMut};
 use mio::unix::EventedFd;
@@ -49,11 +50,11 @@ pub struct Stdout<'a> {
 }
 
 impl<'a> Stdout<'a> {
-    pub fn new() -> Self {
-        Self { 
-            inner: EventedReactor::new(InnerStdout::new(), Ready::writable()).unwrap(),
+    pub fn new() -> Result<Self> {
+        Ok(Self { 
+            inner: EventedReactor::new(InnerStdout::new(), Ready::writable())?,
             buffer: None,
-        }
+        })
     }
 }
 

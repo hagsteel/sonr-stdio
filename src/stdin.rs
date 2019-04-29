@@ -1,6 +1,7 @@
 use std::io::{self, stdin, Read};
 
 use sonr::reactor::{Reaction, Reactor, EventedReactor};
+use sonr::errors::Result;
 use sonr::{Ready, Evented, Token, Poll, PollOpt};
 use bytes::Bytes;
 use mio::unix::EventedFd;
@@ -44,10 +45,10 @@ pub struct Stdin<'a> {
 }
 
 impl<'a> Stdin<'a> {
-    pub fn new() -> Self {
-        Self { 
-            inner: EventedReactor::new(InnerStdin::new(), Ready::readable()).unwrap(),
-        }
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            inner: EventedReactor::new(InnerStdin::new(), Ready::readable())?,
+        })
     }
 }
 
