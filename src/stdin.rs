@@ -3,7 +3,7 @@ use std::io::{self, stdin, Read};
 use sonr::reactor::{Reaction, Reactor, EventedReactor};
 use sonr::errors::Result;
 use sonr::{Ready, Evented, Token, Poll, PollOpt};
-use bytes::Bytes;
+use bytes::{BytesMut, BufMut};
 use mio::unix::EventedFd;
 
 struct InnerStdin<'a> {
@@ -41,20 +41,24 @@ impl<'a> Read for InnerStdin<'a> {
 }
 
 pub struct Stdin<'a> {
-    inner: EventedReactor<InnerStdin<'a>>
+    inner: EventedReactor<InnerStdin<'a>>,
+    buffer: BytesMut,
+    capacity: usize,
 }
 
 impl<'a> Stdin<'a> {
-    pub fn new() -> Result<Self> {
+    pub fn new(capacity: usize) -> Result<Self> {
         Ok(Self {
             inner: EventedReactor::new(InnerStdin::new(), Ready::readable())?,
+            buffer: BytesMut::with_capacity(capacity),
+            capacity, 
         })
     }
 }
 
 impl<'a> Reactor for Stdin<'a> {
     type Input = ();
-    type Output = Bytes;
+    type Output = BytesMut;
 
     fn react(&mut self, reaction: Reaction<Self::Input>) -> Reaction<Self::Output> {
         use Reaction::*;
@@ -65,10 +69,14 @@ impl<'a> Reactor for Stdin<'a> {
                 }
 
                 if ev.readiness().is_readable() {
-                    let mut buf = [0u8; 1024];
+                    self.buffer.reserve(self.capacity);
+                    let mut buf = unsafe { self.buffer.bytes_mut() };
                     match self.inner.read(&mut buf) {
                         Ok(0) => Continue,
-                        Ok(n) => Value(Bytes::from(&buf[..n])),
+                        Ok(n) => {
+                            unsafe { self.buffer.set_len(n); }
+                            Value(self.buffer.take())
+                        }
                         Err(_) => Continue
                     }
                 } else {

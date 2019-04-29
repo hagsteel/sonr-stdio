@@ -12,7 +12,7 @@ use sonr::prelude::*;
 fn main() {
     System::init();
     let out = sonr_stdio::Stdout::new();
-    let run = sonr_stdio::Stdin::new().map(|out: Bytes| {
+    let run = sonr_stdio::Stdin::new(1024).map(|out: Bytes| {
         let mut b = BytesMut::from(out);
         b.reverse();
         b.freeze()
